@@ -109,9 +109,21 @@ class YSULogin:
             with open(save_path, 'wb') as f:
                 f.write(resp.content)
             print(f"请查看并输入验证码图片: {save_path}")
-            self.captcha = input("请输入验证码: ")
+            try:
+                self.captcha = input("请输入验证码: ").strip()
+            except (KeyboardInterrupt, EOFError):
+                print("\n验证码输入已取消")
+                # 清理验证码文件
+                try:
+                    import os
+                    if os.path.exists(save_path):
+                        os.remove(save_path)
+                except:
+                    pass
+                raise KeyboardInterrupt("用户取消验证码输入")
         except requests.exceptions.RequestException as e:
             print(f"错误：获取验证码失败: {e}")
+            raise
 
 
     def login(self):
