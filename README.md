@@ -16,7 +16,7 @@
 ### 1. 克隆项目
 ```bash
 git clone https://github.com/KamijoToma/YSUNetLoginv2.git
-cd YSURuijieLoginv2
+cd YSUNetLoginv2
 ```
 
 ### 2. 安装依赖
@@ -33,13 +33,13 @@ pip install -r requirements.txt
 python ruijie_cli.py login
 
 # 登录（非交互式）
-python ruijie_cli.py login -u 202211040044 -p mypassword
+python ruijie_cli.py login -u 1145141919810 -p mypassword
 
 # 登录到指定服务（使用英文别名）
-python ruijie_cli.py login -u 202211040044 -p mypassword -s unicom
+python ruijie_cli.py login -u 1145141919810 -p mypassword -s unicom
 
 # 列出可用服务并选择
-python ruijie_cli.py login -u 202211040044 -p mypassword -s
+python ruijie_cli.py login -u 1145141919810 -p mypassword -s
 
 # 检查登录状态
 python ruijie_cli.py status
