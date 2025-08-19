@@ -1,0 +1,3 @@
+[submodule "ruijie-go"]
+	path = ruijie-go
+	url = https://github.com/KamijoToma/YSUNetLoginV2-Go
