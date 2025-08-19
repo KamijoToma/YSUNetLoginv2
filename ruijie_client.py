@@ -356,6 +356,22 @@ class RuijieClient:
             online_status = self.user_online(session_info)
             self._log(f"User online status: {online_status}")
             
+            # 8. 检查认证结果
+            if login_result.get('code') == 200 and login_result.get('data'):
+                auth_result = login_result['data'].get('authResult')
+                if auth_result == 'fail':
+                    auth_message = login_result['data'].get('authMessage', 'Unknown authentication error')
+                    raise Exception(f"Authentication failed: {auth_message}")
+                elif auth_result != 'success':
+                    raise Exception(f"Unexpected authentication result: {auth_result}")
+            else:
+                raise Exception(f"Invalid service login response: {login_result}")
+            
+            # 9. 检查在线状态
+            if not online_status.get('online', False):
+                error_message = online_status.get('message', 'User is not online after authentication')
+                raise Exception(f"Login verification failed: {error_message}")
+            
             return True
             
         except Exception as e:

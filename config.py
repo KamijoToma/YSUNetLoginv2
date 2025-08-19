@@ -117,7 +117,7 @@ def get_error_message(exception):
     
     # 认证相关错误
     if 'authentication failed' in error_msg or 'cas' in error_msg:
-        return "Authentication failed. Please check your username and password."
+        return f"Authentication failed. Detail: {error_msg}"
     
     # API相关错误
     if 'api error' in error_msg:
