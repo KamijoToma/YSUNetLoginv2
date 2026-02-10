@@ -170,17 +170,16 @@ class RuijieClient:
         """
         完成SAM登录流程（在CAS认证之后）
 
+        注意：CAS登录成功后会自动重定向到cas-sso/login，
+        然后再重定向到authenticate页面，所以不需要手动调用clientredirect
+
         Args:
             session_info: 会话信息字典
 
         Returns:
-            登录响应
+            None
         """
-        # 再次访问clientredirect，这次应该会成功重定向到portal
-        cas_redirect_url = "https://auth1.ysu.edu.cn/sam-sso/clientredirect?client_name=sidadapter&service=https://auth1.ysu.edu.cn/portal/entry/pc/authenticate;flowParams=undefined;from="
-        resp = self.client.get(cas_redirect_url, allow_redirects=True, proxies=self.proxies)
-
-        self._log(f"Completed SAM login, final URL: {resp.request.url}")
+        self._log("SAM login completed via CAS redirect chain")
 
         # 验证用户在线状态，确保会话已建立
         session_id = session_info.get('sessionId', '')
@@ -188,7 +187,6 @@ class RuijieClient:
         self._log(f"User online info after authenticate: {user_info}")
 
         self._get_current_node(session_info)
-        return resp
     
     def service_selection(self, session_info):
         """
