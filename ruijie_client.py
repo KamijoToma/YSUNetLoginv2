@@ -137,12 +137,12 @@ class RuijieClient:
         Returns:
             CAS登录URL字符串
         """
-        session_id = session_info['sessionId']
-        custom_page_id = session_info['customPageId']
-        nas_ip = session_info['nasIp']
-        user_ip = session_info['userIp']
-        ssid = session_info['ssid']
-        user_mac = session_info['userMac']
+        session_id = session_info.get('sessionId', '')
+        custom_page_id = session_info.get('customPageId', '')
+        nas_ip = session_info.get('nasIp', '')
+        user_ip = session_info.get('userIp', '')
+        ssid = session_info.get('ssid', '')
+        user_mac = session_info.get('userMac', '')
 
         # 首先POST到sam-sso/login
         sam_url = f"https://auth1.ysu.edu.cn/sam-sso/login?flowSessionId={session_id}&customPageId={custom_page_id}&preview=false&appType=normal&language=zh-CN&nasIp={nas_ip}&userIp={user_ip}&ssid={ssid}&userMac={user_mac}"
