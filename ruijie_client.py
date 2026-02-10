@@ -181,6 +181,12 @@ class RuijieClient:
         resp = self.client.get(cas_redirect_url, allow_redirects=True, proxies=self.proxies)
 
         self._log(f"Completed SAM login, final URL: {resp.request.url}")
+
+        # 验证用户在线状态，确保会话已建立
+        session_id = session_info.get('sessionId', '')
+        user_info = self.get_online_user_info(session_id)
+        self._log(f"User online info after authenticate: {user_info}")
+
         self._get_current_node(session_info)
         return resp
     
