@@ -1,8 +1,13 @@
 import requests
 import time
+import base64
+import json
 import functools
 import inspect
 from urllib.parse import urlparse, parse_qs
+from Crypto.Cipher import AES
+from Crypto.Util.Padding import pad
+from bs4 import BeautifulSoup
 import ysu_login
 
 
@@ -34,6 +39,23 @@ class RuijieClient:
         if self.verbose:
             print(f"[DEBUG] {message}")
     
+    def _aes_encrypt_ecb(self, key_b64, plaintext):
+        """
+        AES-ECB-PKCS7加密（cas-sso登录使用）
+
+        Args:
+            key_b64: Base64编码的AES密钥
+            plaintext: 明文字符串
+
+        Returns:
+            Base64编码的密文
+        """
+        key = base64.b64decode(key_b64)
+        cipher = AES.new(key, AES.MODE_ECB)
+        padded = pad(plaintext.encode('utf-8'), AES.block_size)
+        encrypted = cipher.encrypt(padded)
+        return base64.b64encode(encrypted).decode('utf-8')
+
     def _unwrap_response(self, response, json_response=False):
         """
         解包响应结果
@@ -127,36 +149,188 @@ class RuijieClient:
         
         return node_resp
     
-    def sam_login(self, session_info):
+    def cas_sso_login(self, username, password, session_info):
         """
-        执行SAM登录
-        
+        通过cas-sso直接登录（浏览器实际使用的流程）
+
+        Args:
+            username: 用户名
+            password: 密码
+            session_info: 会话信息字典
+
+        Returns:
+            bool: 登录是否成功
+        """
+        session_id = session_info.get('sessionId', '')
+        custom_page_id = session_info.get('customPageId', '')
+        nas_ip = session_info.get('nasIp', '')
+        user_ip = session_info.get('userIp', '')
+        ssid = session_info.get('ssid', '')
+        mode = session_info.get('mode', '')
+
+        timer = str(int(time.time() * 1000))
+        cas_sso_url = (
+            f"https://auth1.ysu.edu.cn/cas-sso/login?"
+            f"flowSessionId={session_id}"
+            f"&customPageId={custom_page_id}"
+            f"&preview=false&appType=normal&language=zh-CN"
+            f"&mode={mode}&timer={timer}"
+            f"&nasIp={nas_ip}&userIp={user_ip}&ssid={ssid}"
+        )
+
+        # Step 1: GET cas-sso/login page to extract croypto and execution
+        self._log(f"Fetching cas-sso login page...")
+        resp = self.client.get(cas_sso_url, proxies=self.proxies)
+        resp.raise_for_status()
+
+        soup = BeautifulSoup(resp.text, 'html.parser')
+
+        croypto_el = soup.find('p', {'id': 'login-croypto'})
+        flowkey_el = soup.find('p', {'id': 'login-page-flowkey'})
+
+        if not croypto_el or not flowkey_el:
+            raise Exception("Failed to extract croypto/flowkey from cas-sso page")
+
+        croypto = croypto_el.get_text(strip=True)
+        execution = flowkey_el.get_text(strip=True)
+        self._log(f"Got croypto: {croypto[:20]}..., execution length: {len(execution)}")
+
+        # Step 2: Encrypt password with AES-ECB
+        encrypted_password = self._aes_encrypt_ecb(croypto, password)
+        encrypted_captcha = self._aes_encrypt_ecb(croypto, '{}')
+
+        # Step 3: POST login form
+        post_url = cas_sso_url + "&accept-language=zh-CN"
+        form_data = {
+            'username': username,
+            'type': 'UsernamePassword',
+            '_eventId': 'submit',
+            'geolocation': '',
+            'execution': execution,
+            'captcha_code': '',
+            'croypto': croypto,
+            'password': encrypted_password,
+            'captcha_payload': encrypted_captcha,
+        }
+
+        self._log(f"Submitting cas-sso login form...")
+        resp = self.client.post(
+            post_url, data=form_data,
+            allow_redirects=True,
+            proxies=self.proxies
+        )
+
+        self._log(f"Login response URL: {resp.url}")
+
+        # Check if we got redirected to auth-success.html with a ticket
+        if 'auth-success' in resp.url or 'ticket=' in resp.url:
+            self._log("CAS-SSO login succeeded (got ticket)")
+            return True
+
+        # Check for error in response
+        if resp.status_code == 200:
+            error_soup = BeautifulSoup(resp.text, 'html.parser')
+            error_el = error_soup.find(id='errorMessage')
+            if error_el:
+                raise Exception(f"Login failed: {error_el.get_text(strip=True)}")
+
+        raise Exception(f"CAS-SSO login failed, final URL: {resp.url}")
+
+    def get_cas_login_url_v2(self):
+        """
+        通过访问portal获取CAS登录URL（新方法）
+
+        当用户未认证时，访问portal会自动重定向到CAS登录页面
+
+        Returns:
+            CAS登录URL字符串，如果已认证则返回None
+        """
+        # 访问portal入口，不自动跟随重定向
+        portal_url = "https://auth1.ysu.edu.cn/eportal/redirect.jsp?mode=history"
+        resp = self.client.get(portal_url, allow_redirects=False, proxies=self.proxies)
+
+        # 检查是否有重定向
+        redirect_count = 0
+        while resp.status_code in [301, 302, 303, 307, 308] and redirect_count < 10:
+            location = resp.headers.get('Location')
+            self._log(f"Redirect {redirect_count}: {location[:100] if location else 'None'}...")
+
+            # 如果重定向到CAS登录页面，返回这个URL
+            if location and 'cer.ysu.edu.cn/authserver/login' in location:
+                self._log(f"Found CAS login URL: {location}")
+                return location
+
+            # 继续跟随重定向
+            if location:
+                resp = self.client.get(location, allow_redirects=False, proxies=self.proxies)
+                redirect_count += 1
+            else:
+                break
+
+        # 如果没有重定向到CAS，可能已经认证
+        self._log(f"No CAS redirect found, final status: {resp.status_code}, URL: {resp.request.url}")
+        return None
+
+    def get_cas_login_url(self, session_info):
+        """
+        获取CAS登录URL（包含delegatedclientid）
+
         Args:
             session_info: 会话信息字典
-            
+
         Returns:
-            登录响应
+            CAS登录URL字符串
         """
-        session_id = session_info['sessionId']
-        custom_page_id = session_info['customPageId']
-        nas_ip = session_info['nasIp']
-        user_ip = session_info['userIp']
-        ssid = session_info['ssid']
-        user_mac = session_info['userMac']
-        
+        session_id = session_info.get('sessionId', '')
+        custom_page_id = session_info.get('customPageId', '')
+        nas_ip = session_info.get('nasIp', '')
+        user_ip = session_info.get('userIp', '')
+        ssid = session_info.get('ssid', '')
+        user_mac = session_info.get('userMac', '')
+
+        # 首先POST到sam-sso/login
         sam_url = f"https://auth1.ysu.edu.cn/sam-sso/login?flowSessionId={session_id}&customPageId={custom_page_id}&preview=false&appType=normal&language=zh-CN&nasIp={nas_ip}&userIp={user_ip}&ssid={ssid}&userMac={user_mac}"
-        
         resp = self.client.post(sam_url, json=session_info, proxies=self.proxies, allow_redirects=True)
-        
-        # 客户端重定向到YSU CAS服务器
+
+        # 获取CAS重定向URL（不自动跟随重定向）
         cas_redirect_url = "https://auth1.ysu.edu.cn/sam-sso/clientredirect?client_name=sidadapter&service=https://auth1.ysu.edu.cn/portal/entry/pc/authenticate;flowParams=undefined;from="
-        resp = self.client.get(cas_redirect_url, allow_redirects=True, proxies=self.proxies)
-        
-        if "cer.ysu.edu.cn" not in resp.request.url and "ticket=" not in resp.request.url:
-            raise Exception(f"CAS redirection failed. Expected redirect to CAS server or successful login, but got: {resp.request.url}")
-        
+        resp = self.client.get(cas_redirect_url, allow_redirects=False, proxies=self.proxies)
+
+        # 检查是否有重定向
+        if resp.status_code in [301, 302, 303, 307, 308]:
+            cas_login_url = resp.headers.get('Location')
+            if cas_login_url and 'cer.ysu.edu.cn' in cas_login_url:
+                self._log(f"Got CAS login URL: {cas_login_url}")
+                return cas_login_url
+
+        # 如果没有重定向到CAS，可能已经有有效的ticket
+        if "ticket=" in resp.request.url:
+            self._log("Already have a valid ticket, no CAS login needed")
+            return None
+
+        raise Exception(f"Failed to get CAS login URL. Status: {resp.status_code}, URL: {resp.request.url}")
+
+    def complete_sam_login(self, session_info):
+        """
+        完成SAM登录流程（在CAS认证之后）
+
+        注意：CAS登录成功后会自动重定向到cas-sso/login，
+        然后再重定向到authenticate页面，所以不需要手动调用clientredirect
+
+        Args:
+            session_info: 会话信息字典
+
+        Returns:
+            None
+        """
+        self._log("SAM login completed via CAS redirect chain")
+
+        # 验证用户在线状态，确保会话已建立
+        session_id = session_info.get('sessionId', '')
+        user_info = self.get_online_user_info(session_id)
+        self._log(f"User online info after authenticate: {user_info}")
+
         self._get_current_node(session_info)
-        return resp
     
     def service_selection(self, session_info):
         """
@@ -271,11 +445,11 @@ class RuijieClient:
     def get_available_services(self, username, password):
         """
         获取可用服务列表（不执行登录）
-        
+
         Args:
             username: 用户名
             password: 密码
-            
+
         Returns:
             list: 可用服务列表
         """
@@ -287,26 +461,20 @@ class RuijieClient:
                 session_info = self.redirect_to_portal()
                 services = self.service_selection(session_info)
                 return services
-            
+
             # 2. 重定向到门户获取会话信息
             session_info = self.redirect_to_portal()
             self._log(f"Got session info: {session_info}")
-            
-            # 3. CAS登录
-            cas_client = ysu_login.YSULogin(username, password, session=self.client, proxies=self.proxies)
-            cas_result = cas_client.login()
-            if not cas_result:
-                raise Exception("CAS authentication failed")
-            
-            # 4. SAM登录
-            self.sam_login(session_info)
-            
-            # 5. 获取服务列表
+
+            # 3. 通过cas-sso直接登录
+            self.cas_sso_login(username, password, session_info)
+
+            # 6. 获取服务列表
             services = self.service_selection(session_info)
             self._log(f"Available services: {services}")
-            
+
             return services
-            
+
         except Exception as e:
             if self.verbose:
                 self._log(f"Get services failed: {e}")
@@ -315,12 +483,12 @@ class RuijieClient:
     def login(self, username, password, service="校园网"):
         """
         执行完整的登录流程
-        
+
         Args:
             username: 用户名
             password: 密码
             service: 要登录的服务名称
-            
+
         Returns:
             bool: 登录是否成功
         """
@@ -330,19 +498,13 @@ class RuijieClient:
             if is_logged_in:
                 self._log("Already logged in")
                 return True
-            
+
             # 2. 重定向到门户获取会话信息
             session_info = self.redirect_to_portal()
             self._log(f"Got session info: {session_info}")
-            
-            # 3. CAS登录
-            cas_client = ysu_login.YSULogin(username, password, session=self.client, proxies=self.proxies)
-            cas_result = cas_client.login()
-            if not cas_result:
-                raise Exception("CAS authentication failed")
-            
-            # 4. SAM登录
-            self.sam_login(session_info)
+
+            # 3. 通过cas-sso直接登录
+            self.cas_sso_login(username, password, session_info)
             
             # 5. 获取服务列表
             services = self.service_selection(session_info)

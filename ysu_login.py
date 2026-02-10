@@ -15,16 +15,17 @@ from io import BytesIO
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 class YSULogin:
-    LOGIN_URL = "https://cer.ysu.edu.cn/authserver/login?service=https%3A%2F%2Fehall.ysu.edu.cn%2Flogin"
+    DEFAULT_LOGIN_URL = "https://cer.ysu.edu.cn/authserver/login?service=https%3A%2F%2Fehall.ysu.edu.cn%2Flogin"
     CHECK_CAPTCHA_URL = "https://cer.ysu.edu.cn/authserver/checkNeedCaptcha.htl"
     CAPTCHA_URL = "https://cer.ysu.edu.cn/authserver/getCaptcha.htl"
 
-    def __init__(self, username, password, session=None, proxies={}, display_mode='both'):
+    def __init__(self, username, password, session=None, proxies={}, display_mode='both', login_url=None):
         self.username = username
         self.password = password
         self.session = session or requests.Session()
         self.proxies = proxies
         self.display_mode = display_mode  # 'ascii', 'file', 'both'
+        self.LOGIN_URL = login_url or self.DEFAULT_LOGIN_URL
         # 模拟浏览器 User-Agent
         self.session.headers.update({
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
