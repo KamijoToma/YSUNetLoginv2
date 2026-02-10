@@ -20,6 +20,17 @@ cd YSUNetLoginv2
 ```
 
 ### 2. 安装依赖
+
+#### 使用 uv（推荐）
+```bash
+# 安装 uv（如果尚未安装）
+# https://docs.astral.sh/uv/getting-started/installation/
+
+# 同步依赖并创建虚拟环境
+uv sync
+```
+
+#### 使用 pip
 ```bash
 pip install -r requirements.txt
 ```
@@ -30,29 +41,31 @@ pip install -r requirements.txt
 
 ```bash
 # 登录（交互式）
-python ruijie_cli.py login
+uv run ruijie_cli.py login
 
 # 登录（非交互式）
-python ruijie_cli.py login -u 1145141919810 -p mypassword
+uv run ruijie_cli.py login -u 1145141919810 -p mypassword
 
 # 登录到指定服务（使用英文别名）
-python ruijie_cli.py login -u 1145141919810 -p mypassword -s unicom
+uv run ruijie_cli.py login -u 1145141919810 -p mypassword -s unicom
 
 # 列出可用服务并选择
-python ruijie_cli.py login -u 1145141919810 -p mypassword -s
+uv run ruijie_cli.py login -u 1145141919810 -p mypassword -s
 
 # 检查登录状态
-python ruijie_cli.py status
+uv run ruijie_cli.py status
 
 # 登出
-python ruijie_cli.py logout
+uv run ruijie_cli.py logout
 
 # 查看账户信息
-python ruijie_cli.py info
+uv run ruijie_cli.py info
 
 # 查看帮助
-python ruijie_cli.py --help
+uv run ruijie_cli.py --help
 ```
+
+> **提示**: 如果未使用 uv，将上述命令中的 `uv run` 替换为 `python` 即可。
 
 ### 环境变量配置
 
@@ -64,7 +77,7 @@ export RUIJIE_USERNAME=1145141919810
 export RUIJIE_PASSWORD=mypassword
 
 # 然后直接登录
-python ruijie_cli.py login
+uv run ruijie_cli.py login
 ```
 
 支持的环境变量：
@@ -81,12 +94,12 @@ python ruijie_cli.py login
 
 ```bash
 # 方法1: 命令行参数
-python ruijie_cli.py login --proxy socks5://127.0.0.1:1080
+uv run ruijie_cli.py login --proxy socks5://127.0.0.1:1080
 
 # 方法2: 环境变量
 export HTTP_PROXY=socks5://127.0.0.1:1080
 export HTTPS_PROXY=socks5://127.0.0.1:1080
-python ruijie_cli.py login
+uv run ruijie_cli.py login
 ```
 
 ### 服务选择
@@ -95,23 +108,23 @@ python ruijie_cli.py login
 
 ```bash
 # 使用中文服务名
-python ruijie_cli.py login -s 校园网
-python ruijie_cli.py login -s 中国联通
+uv run ruijie_cli.py login -s 校园网
+uv run ruijie_cli.py login -s 中国联通
 
 # 使用英文别名
-python ruijie_cli.py login -s campus     # 校园网
-python ruijie_cli.py login -s unicom     # 中国联通
-python ruijie_cli.py login -s telecom    # 中国电信
-python ruijie_cli.py login -s mobile     # 中国移动
+uv run ruijie_cli.py login -s campus     # 校园网
+uv run ruijie_cli.py login -s unicom     # 中国联通
+uv run ruijie_cli.py login -s telecom    # 中国电信
+uv run ruijie_cli.py login -s mobile     # 中国移动
 
 # 使用数字别名
-python ruijie_cli.py login -s 1          # 校园网
-python ruijie_cli.py login -s 2          # 中国联通
-python ruijie_cli.py login -s 3          # 中国电信
-python ruijie_cli.py login -s 4          # 中国移动
+uv run ruijie_cli.py login -s 1          # 校园网
+uv run ruijie_cli.py login -s 2          # 中国联通
+uv run ruijie_cli.py login -s 3          # 中国电信
+uv run ruijie_cli.py login -s 4          # 中国移动
 
 # 列出可用服务并交互式选择
-python ruijie_cli.py login -s
+uv run ruijie_cli.py login -s
 ```
 
 ### 详细输出
@@ -120,11 +133,11 @@ python ruijie_cli.py login -s
 
 ```bash
 # 方法1: 命令行参数
-python ruijie_cli.py login -v
+uv run ruijie_cli.py login -v
 
 # 方法2: 环境变量
 export RUIJIE_VERBOSE=1
-python ruijie_cli.py login
+uv run ruijie_cli.py login
 ```
 
 ## 使用示例
@@ -132,14 +145,14 @@ python ruijie_cli.py login
 ### 1. 日常使用
 ```bash
 # 早上到校后登录
-python ruijie_cli.py login -u 1145141919810 -p mypassword
+uv run ruijie_cli.py login -u 1145141919810 -p mypassword
 
 # 检查网络状态
-python ruijie_cli.py status
+uv run ruijie_cli.py status
 # 输出: Online: 1145141919810 (中国联通)
 
 # 离校前登出
-python ruijie_cli.py logout
+uv run ruijie_cli.py logout
 ```
 
 ### 2. 脚本化使用
@@ -151,9 +164,9 @@ export RUIJIE_USERNAME=1145141919810
 export RUIJIE_PASSWORD=mypassword
 
 # 检查是否已登录
-if python ruijie_cli.py status | grep -q "Offline"; then
+if uv run ruijie_cli.py status | grep -q "Offline"; then
     echo "Not logged in, attempting to login..."
-    python ruijie_cli.py login
+    uv run ruijie_cli.py login
 else
     echo "Already logged in"
 fi
@@ -167,7 +180,7 @@ fi
 4. 完成登录后清理临时文件
 
 ```bash
-$ python ruijie_cli.py login -u 1145141919810 -p mypassword
+$ uv run ruijie_cli.py login -u 1145141919810 -p mypassword
 请查看并输入验证码图片: captcha.jpg
 请输入验证码: abcd
 Login successful.
@@ -183,7 +196,7 @@ Login successful.
 这使得程序可以很好地与shell脚本集成：
 
 ```bash
-if python ruijie_cli.py login; then
+if uv run ruijie_cli.py login; then
     echo "Login successful"
 else
     echo "Login failed"
@@ -207,7 +220,8 @@ YSURuijieLoginv2/
 ├── ruijie_client.py       # 核心客户端类
 ├── config.py              # 配置管理
 ├── ysu_login.py          # CAS登录模块
-├── requirements.txt       # 依赖列表
+├── pyproject.toml         # 项目配置（uv/pip）
+├── requirements.txt       # 依赖列表（pip）
 ├── ruijie_ysu.ipynb      # 原始研究笔记本
 ├── TECH.md               # 技术文档
 └── README.md             # 本文档
@@ -251,7 +265,7 @@ A: 请手动查看验证码图片并正确输入
 使用详细输出模式可以帮助诊断问题：
 
 ```bash
-python ruijie_cli.py login -v
+uv run ruijie_cli.py login -v
 ```
 
 ## 许可证
