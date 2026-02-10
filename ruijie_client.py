@@ -127,7 +127,40 @@ class RuijieClient:
         
         return node_resp
     
-    def get_cas_login_url(self, session_info):
+    def get_cas_login_url_v2(self):
+        """
+        通过访问portal获取CAS登录URL（新方法）
+
+        当用户未认证时，访问portal会自动重定向到CAS登录页面
+
+        Returns:
+            CAS登录URL字符串，如果已认证则返回None
+        """
+        # 访问portal入口，不自动跟随重定向
+        portal_url = "https://auth1.ysu.edu.cn/eportal/redirect.jsp?mode=history"
+        resp = self.client.get(portal_url, allow_redirects=False, proxies=self.proxies)
+
+        # 检查是否有重定向
+        redirect_count = 0
+        while resp.status_code in [301, 302, 303, 307, 308] and redirect_count < 10:
+            location = resp.headers.get('Location')
+            self._log(f"Redirect {redirect_count}: {location[:100] if location else 'None'}...")
+
+            # 如果重定向到CAS登录页面，返回这个URL
+            if location and 'cer.ysu.edu.cn/authserver/login' in location:
+                self._log(f"Found CAS login URL: {location}")
+                return location
+
+            # 继续跟随重定向
+            if location:
+                resp = self.client.get(location, allow_redirects=False, proxies=self.proxies)
+                redirect_count += 1
+            else:
+                break
+
+        # 如果没有重定向到CAS，可能已经认证
+        self._log(f"No CAS redirect found, final status: {resp.status_code}, URL: {resp.request.url}")
+        return None
         """
         获取CAS登录URL（包含delegatedclientid）
 
@@ -370,14 +403,10 @@ class RuijieClient:
                 self._log("Already logged in")
                 return True
 
-            # 2. 重定向到门户获取会话信息
-            session_info = self.redirect_to_portal()
-            self._log(f"Got session info: {session_info}")
+            # 2. 获取CAS登录URL（通过访问portal入口）
+            cas_login_url = self.get_cas_login_url_v2()
 
-            # 3. 获取CAS登录URL（包含delegatedclientid）
-            cas_login_url = self.get_cas_login_url(session_info)
-
-            # 4. 如果需要CAS认证，执行CAS登录
+            # 3. 如果需要CAS认证，执行CAS登录
             if cas_login_url:
                 self._log(f"Performing CAS login with URL: {cas_login_url}")
                 cas_client = ysu_login.YSULogin(
@@ -389,11 +418,12 @@ class RuijieClient:
                 cas_result = cas_client.login()
                 if not cas_result:
                     raise Exception("CAS authentication failed")
-
-                # 5. 完成SAM登录流程
-                self.complete_sam_login(session_info)
             else:
                 self._log("CAS login not needed, already authenticated")
+
+            # 4. 重定向到portal获取会话信息
+            session_info = self.redirect_to_portal()
+            self._log(f"Got session info: {session_info}")
             
             # 5. 获取服务列表
             services = self.service_selection(session_info)
