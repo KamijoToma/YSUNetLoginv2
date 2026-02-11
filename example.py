@@ -7,8 +7,8 @@
 
 import os
 import sys
-from ruijie_client import RuijieClient
-from config import get_error_message, print_status_info, print_account_info
+from ysu_net_login.ruijie_client import RuijieClient
+from ysu_net_login.config import get_error_message, print_status_info, print_account_info
 
 
 def example_check_status():

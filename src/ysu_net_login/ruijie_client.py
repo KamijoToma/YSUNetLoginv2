@@ -8,7 +8,7 @@ from urllib.parse import urlparse, parse_qs
 from Crypto.Cipher import AES
 from Crypto.Util.Padding import pad
 from bs4 import BeautifulSoup
-import ysu_login
+from . import ysu_login
 
 
 class RuijieClient:

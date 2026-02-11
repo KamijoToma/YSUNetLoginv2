@@ -14,9 +14,8 @@ Author: SkyRain <admin@misakacloud.net>
 
 import sys
 import argparse
-import os
-from ruijie_client import RuijieClient
-from config import Config, get_error_message, print_status_info, print_account_info, resolve_service_name, interactive_service_selection
+from .ruijie_client import RuijieClient
+from .config import Config, get_error_message, print_status_info, print_account_info, resolve_service_name, interactive_service_selection
 
 
 def cmd_login(args, config):

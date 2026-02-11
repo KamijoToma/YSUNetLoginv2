@@ -17,8 +17,11 @@ dependencies = [
 ]
 
 [project.scripts]
-ruijie = "ruijie_cli:main"
+ysunetlogin = "ysu_net_login.ruijie_cli:main"
 
 [build-system]
 requires = ["hatchling"]
-build-backend = "hatchling.backends"
+build-backend = "hatchling.build"
+
+[tool.hatchling.build.targets.wheel]
+packages = ["src/ysu_net_login"]

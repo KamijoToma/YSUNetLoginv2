@@ -13,24 +13,40 @@
 
 ## 安装
 
-### 1. 克隆项目
+### 快速安装（推荐）
+
+使用 uv tool 直接从 GitHub 安装，安装后可以在任何地方使用 `ysunetlogin` 命令：
+
+```bash
+# 安装 uv（如果尚未安装）
+# https://docs.astral.sh/uv/getting-started/installation/
+
+# 从 GitHub 安装
+uv tool install git+https://github.com/KamijoToma/YSUNetLoginv2.git
+
+# 安装完成后，可以直接使用
+ysunetlogin --help
+```
+
+### 开发安装
+
+如果你想参与开发或修改代码：
+
+#### 1. 克隆项目
 ```bash
 git clone https://github.com/KamijoToma/YSUNetLoginv2.git
 cd YSUNetLoginv2
 ```
 
-### 2. 安装依赖
+#### 2. 安装依赖
 
-#### 使用 uv（推荐）
+**使用 uv（推荐）**
 ```bash
-# 安装 uv（如果尚未安装）
-# https://docs.astral.sh/uv/getting-started/installation/
-
 # 同步依赖并创建虚拟环境
 uv sync
 ```
 
-#### 使用 pip
+**使用 pip**
 ```bash
 pip install -r requirements.txt
 ```
@@ -39,33 +55,43 @@ pip install -r requirements.txt
 
 ### 基本命令
 
+**如果使用 uv tool 安装，可以直接使用 `ysunetlogin` 命令：**
+
 ```bash
 # 登录（交互式）
-uv run ruijie_cli.py login
+ysunetlogin login
 
 # 登录（非交互式）
-uv run ruijie_cli.py login -u 1145141919810 -p mypassword
+ysunetlogin login -u 1145141919810 -p mypassword
 
 # 登录到指定服务（使用英文别名）
-uv run ruijie_cli.py login -u 1145141919810 -p mypassword -s unicom
+ysunetlogin login -u 1145141919810 -p mypassword -s unicom
 
 # 列出可用服务并选择
-uv run ruijie_cli.py login -u 1145141919810 -p mypassword -s
+ysunetlogin login -u 1145141919810 -p mypassword -s
 
 # 检查登录状态
-uv run ruijie_cli.py status
+ysunetlogin status
 
 # 登出
-uv run ruijie_cli.py logout
+ysunetlogin logout
 
 # 查看账户信息
-uv run ruijie_cli.py info
+ysunetlogin info
 
 # 查看帮助
-uv run ruijie_cli.py --help
+ysunetlogin --help
 ```
 
-> **提示**: 如果未使用 uv，将上述命令中的 `uv run` 替换为 `python` 即可。
+**如果是开发模式（克隆了仓库），使用以下命令：**
+
+```bash
+# 使用 uv run
+uv run ruijie_cli.py login
+
+# 或使用 python（需要先激活虚拟环境）
+python ruijie_cli.py login
+```
 
 ### 环境变量配置
 
@@ -77,7 +103,7 @@ export RUIJIE_USERNAME=1145141919810
 export RUIJIE_PASSWORD=mypassword
 
 # 然后直接登录
-uv run ruijie_cli.py login
+ysunetlogin login
 ```
 
 支持的环境变量：
@@ -94,12 +120,12 @@ uv run ruijie_cli.py login
 
 ```bash
 # 方法1: 命令行参数
-uv run ruijie_cli.py login --proxy socks5://127.0.0.1:1080
+ysunetlogin login --proxy socks5://127.0.0.1:1080
 
 # 方法2: 环境变量
 export HTTP_PROXY=socks5://127.0.0.1:1080
 export HTTPS_PROXY=socks5://127.0.0.1:1080
-uv run ruijie_cli.py login
+ysunetlogin login
 ```
 
 ### 服务选择
@@ -108,23 +134,23 @@ uv run ruijie_cli.py login
 
 ```bash
 # 使用中文服务名
-uv run ruijie_cli.py login -s 校园网
-uv run ruijie_cli.py login -s 中国联通
+ysunetlogin login -s 校园网
+ysunetlogin login -s 中国联通
 
 # 使用英文别名
-uv run ruijie_cli.py login -s campus     # 校园网
-uv run ruijie_cli.py login -s unicom     # 中国联通
-uv run ruijie_cli.py login -s telecom    # 中国电信
-uv run ruijie_cli.py login -s mobile     # 中国移动
+ysunetlogin login -s campus     # 校园网
+ysunetlogin login -s unicom     # 中国联通
+ysunetlogin login -s telecom    # 中国电信
+ysunetlogin login -s mobile     # 中国移动
 
 # 使用数字别名
-uv run ruijie_cli.py login -s 1          # 校园网
-uv run ruijie_cli.py login -s 2          # 中国联通
-uv run ruijie_cli.py login -s 3          # 中国电信
-uv run ruijie_cli.py login -s 4          # 中国移动
+ysunetlogin login -s 1          # 校园网
+ysunetlogin login -s 2          # 中国联通
+ysunetlogin login -s 3          # 中国电信
+ysunetlogin login -s 4          # 中国移动
 
 # 列出可用服务并交互式选择
-uv run ruijie_cli.py login -s
+ysunetlogin login -s
 ```
 
 ### 详细输出
@@ -133,11 +159,11 @@ uv run ruijie_cli.py login -s
 
 ```bash
 # 方法1: 命令行参数
-uv run ruijie_cli.py login -v
+ysunetlogin login -v
 
 # 方法2: 环境变量
 export RUIJIE_VERBOSE=1
-uv run ruijie_cli.py login
+ysunetlogin login
 ```
 
 ## 使用示例
@@ -145,14 +171,14 @@ uv run ruijie_cli.py login
 ### 1. 日常使用
 ```bash
 # 早上到校后登录
-uv run ruijie_cli.py login -u 1145141919810 -p mypassword
+ysunetlogin login -u 1145141919810 -p mypassword
 
 # 检查网络状态
-uv run ruijie_cli.py status
+ysunetlogin status
 # 输出: Online: 1145141919810 (中国联通)
 
 # 离校前登出
-uv run ruijie_cli.py logout
+ysunetlogin logout
 ```
 
 ### 2. 脚本化使用
@@ -164,9 +190,9 @@ export RUIJIE_USERNAME=1145141919810
 export RUIJIE_PASSWORD=mypassword
 
 # 检查是否已登录
-if uv run ruijie_cli.py status | grep -q "Offline"; then
+if ysunetlogin status | grep -q "Offline"; then
     echo "Not logged in, attempting to login..."
-    uv run ruijie_cli.py login
+    ysunetlogin login
 else
     echo "Already logged in"
 fi
@@ -180,7 +206,7 @@ fi
 4. 完成登录后清理临时文件
 
 ```bash
-$ uv run ruijie_cli.py login -u 1145141919810 -p mypassword
+$ ysunetlogin login -u 1145141919810 -p mypassword
 请查看并输入验证码图片: captcha.jpg
 请输入验证码: abcd
 Login successful.
@@ -196,7 +222,7 @@ Login successful.
 这使得程序可以很好地与shell脚本集成：
 
 ```bash
-if uv run ruijie_cli.py login; then
+if ysunetlogin login; then
     echo "Login successful"
 else
     echo "Login failed"
@@ -215,16 +241,20 @@ fi
 ## 文件结构
 
 ```
-YSURuijieLoginv2/
-├── ruijie_cli.py          # 主程序入口
-├── ruijie_client.py       # 核心客户端类
-├── config.py              # 配置管理
-├── ysu_login.py          # CAS登录模块
-├── pyproject.toml         # 项目配置（uv/pip）
-├── requirements.txt       # 依赖列表（pip）
-├── ruijie_ysu.ipynb      # 原始研究笔记本
-├── TECH.md               # 技术文档
-└── README.md             # 本文档
+YSUNetLoginv2/
+├── src/
+│   └── ysu_net_login/        # 核心包目录
+│       ├── __init__.py       # 包初始化
+│       ├── ruijie_cli.py     # 命令行入口
+│       ├── ruijie_client.py  # 核心客户端类
+│       ├── config.py         # 配置管理
+│       └── ysu_login.py      # CAS登录模块
+├── example.py                # 使用示例
+├── test_captcha_display.py   # 验证码测试
+├── pyproject.toml            # 项目配置（uv/pip）
+├── requirements.txt          # 依赖列表（pip）
+├── ruijie_ysu.ipynb         # 原始研究笔记本
+└── README.md                # 本文档
 ```
 
 ## 技术说明
@@ -265,7 +295,7 @@ A: 请手动查看验证码图片并正确输入
 使用详细输出模式可以帮助诊断问题：
 
 ```bash
-uv run ruijie_cli.py login -v
+ysunetlogin login -v
 ```
 
 ## 许可证

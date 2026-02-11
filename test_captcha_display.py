@@ -5,7 +5,7 @@
 测试改进后的 YSULogin 类的验证码显示功能
 """
 
-from ysu_login import YSULogin
+from ysu_net_login.ysu_login import YSULogin
 
 def test_captcha_display():
     """测试验证码显示功能"""
